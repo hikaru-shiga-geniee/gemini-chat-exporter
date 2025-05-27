@@ -1,0 +1,50 @@
+name: Release Chrome Extension
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+\.[0-9]+\.[0-9]+' # vX.X.X 形式のタグにマッチ
+
+permissions:
+  contents: write  # GitHub Releasesへの書き込み権限が必要
+
+jobs:
+  build-and-release:
+    runs-on: ubuntu-latest # 最新のUbuntuランナーを使用
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4 # コードをチェックアウト
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '18' # プロジェクトの要件に合わせてNode.jsバージョンを指定 (v18以上推奨)
+          cache: 'npm'         # npmのキャッシュを有効化
+
+      - name: Install dependencies
+        run: npm install # 依存関係をインストール
+
+      - name: Build extension
+        run: npm run build # プロジェクトをビルド (vite build が実行される)
+
+      - name: Run final test (Optional)
+        run: make test # ビルド成果物の最終テストを実行 (任意)
+
+      - name: Archive extension files
+        run: |
+          # 'dist' ディレクトリを zip 形式に圧縮
+          # ファイル名は 'gemini-chat-exporter-vX.X.X.zip' のようになる
+          zip -r gemini-chat-exporter-${{ github.ref_name }}.zip dist/
+
+      - name: Create GitHub Release
+        uses: ncipollo/release-action@v1 # リリース作成とアセットアップロードを行うアクション
+        with:
+          artifacts: "gemini-chat-exporter-${{ github.ref_name }}.zip" # アップロードするファイル (zipファイル)
+          token: ${{ secrets.GITHUB_TOKEN }} # 自動的に提供されるGitHubトークンを使用
+          tag: ${{ github.ref_name }}        # トリガーとなったタグ名を使用
+          name: "Release ${{ github.ref_name }}" # リリースのタイトル
+          body: |                            # リリースの説明 (必要に応じて変更)
+            Release of version ${{ github.ref_name }}.
+            Download the `gemini-chat-exporter-${{ github.ref_name }}.zip` file below and load it as an unpacked extension in Chrome.
+          allowUpdates: true # 既に存在するリリースの更新を許可
