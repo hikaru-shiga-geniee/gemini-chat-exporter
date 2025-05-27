@@ -7,6 +7,8 @@ import { theme } from './theme'
 import { ExportButton } from './components/ExportButton'
 import { useState } from 'react'
 import type { GetChatDataMessage, ChatDataResponse } from '../types/messages'
+import { formatAsText, generateFileName } from '../utils/textFormatter'
+import { downloadTextFile } from '../utils/fileSaver'
 
 function App() {
   const [isExporting, setIsExporting] = useState(false)
@@ -55,8 +57,22 @@ function App() {
           console.log('✅ Successfully received chat data:', response.data)
           console.log(`📊 Message count: ${response.messageCount}`)
           
-          // TODO: Process the data (will be implemented in phase 5)
-          alert(`Success! Found ${response.messageCount} messages. Data logged to console.`)
+          // Phase 5: Process the data and download as text file
+          try {
+            console.log('📝 Formatting chat data as text...')
+            const formattedText = formatAsText(response.data)
+            
+            console.log('💾 Generating file name...')
+            const fileName = generateFileName('gemini-chat')
+            
+            console.log(`💾 Downloading file: ${fileName}`)
+            downloadTextFile(formattedText, fileName)
+            
+            alert(`✅ Successfully exported ${response.messageCount} messages to ${fileName}`)
+          } catch (exportError) {
+            console.error('❌ Error during export process:', exportError)
+            alert(`Error during export: ${exportError instanceof Error ? exportError.message : 'Unknown error'}`)
+          }
         } else {
           console.error('❌ Content script returned error:', response.error)
           alert(`Error: ${response.error}`)
