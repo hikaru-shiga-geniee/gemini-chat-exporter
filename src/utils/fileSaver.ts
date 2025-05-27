@@ -1,12 +1,18 @@
 /**
- * テキスト文字列を受け取り、ブラウザでファイルをダウンロードさせる関数
+ * Markdownまたはテキスト文字列を受け取り、ブラウザでファイルをダウンロードさせる関数
  * @param textContent - ダウンロードするテキスト内容
  * @param fileName - ダウンロードするファイル名
  */
 export function downloadTextFile(textContent: string, fileName: string): void {
   try {
-    // BlobでテキストファイルのURLを作成
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' })
+    // ファイル拡張子に基づいてMIMEタイプを決定
+    const isMarkdown = fileName.endsWith('.md') || fileName.endsWith('.markdown')
+    const mimeType = isMarkdown 
+      ? 'text/markdown;charset=utf-8' 
+      : 'text/plain;charset=utf-8'
+    
+    // BlobでMarkdown/テキストファイルのURLを作成
+    const blob = new Blob([textContent], { type: mimeType })
     const url = URL.createObjectURL(blob)
 
     // ダウンロード用のaタグを作成
@@ -31,6 +37,17 @@ export function downloadTextFile(textContent: string, fileName: string): void {
 }
 
 /**
+ * Markdownファイル専用のダウンロード関数
+ * @param markdownContent - ダウンロードするMarkdown内容
+ * @param fileName - ダウンロードするファイル名
+ */
+export function downloadMarkdownFile(markdownContent: string, fileName: string): void {
+  // 拡張子が.mdでない場合は自動的に追加
+  const finalFileName = fileName.endsWith('.md') ? fileName : `${fileName}.md`
+  downloadTextFile(markdownContent, finalFileName)
+}
+
+/**
  * Chrome Downloads APIを使用してファイルをダウンロードする関数
  * (Background Scriptでの使用を想定)
  * @param textContent - ダウンロードするテキスト内容
@@ -38,8 +55,14 @@ export function downloadTextFile(textContent: string, fileName: string): void {
  */
 export async function downloadFileWithChromeAPI(textContent: string, fileName: string): Promise<void> {
   try {
+    // ファイル拡張子に基づいてMIMEタイプを決定
+    const isMarkdown = fileName.endsWith('.md') || fileName.endsWith('.markdown')
+    const mimeType = isMarkdown 
+      ? 'text/markdown;charset=utf-8' 
+      : 'text/plain;charset=utf-8'
+    
     // Blobを作成してURLを生成
-    const blob = new Blob([textContent], { type: 'text/plain;charset=utf-8' })
+    const blob = new Blob([textContent], { type: mimeType })
     const url = URL.createObjectURL(blob)
 
     // Chrome Downloads APIを使用

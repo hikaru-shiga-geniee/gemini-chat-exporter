@@ -7,7 +7,7 @@ import { theme } from './theme'
 import { ExportButton } from './components/ExportButton'
 import { useState } from 'react'
 import type { GetChatDataMessage, ChatDataResponse } from '../types/messages'
-import { formatAsText, generateFileName } from '../utils/textFormatter'
+import { formatAsMarkdown, generateFileName } from '../utils/textFormatter'
 import { downloadTextFile } from '../utils/fileSaver'
 
 function App() {
@@ -59,14 +59,14 @@ function App() {
           
           // Phase 5: Process the data and download as text file
           try {
-            console.log('📝 Formatting chat data as text...')
-            const formattedText = formatAsText(response.data)
+            console.log('📝 Formatting chat data as Markdown...')
+            const formattedMarkdown = formatAsMarkdown(response.data)
             
             console.log('💾 Generating file name...')
             const fileName = generateFileName('gemini-chat')
             
             console.log(`💾 Downloading file: ${fileName}`)
-            downloadTextFile(formattedText, fileName)
+            downloadTextFile(formattedMarkdown, fileName)
             
             console.log(`✅ Successfully exported ${response.messageCount} messages to ${fileName}`)
           } catch (exportError) {
@@ -115,7 +115,7 @@ function App() {
           <Divider sx={{ mb: 2 }} />
 
           <Typography variant="body2" color="text.secondary" sx={{ mb: 3 }}>
-            Export your current Gemini chat conversation to a text file
+            Export your current Gemini chat conversation to a Markdown file
           </Typography>
 
           <ExportButton onClick={handleExportClick} disabled={isExporting} />
