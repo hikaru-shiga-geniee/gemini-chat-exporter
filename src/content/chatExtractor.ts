@@ -8,49 +8,42 @@ export interface ChatMessage {
 
 /**
  * Extract chat data from the current Gemini page
- * @returns Array of chat messages
+ * @returns Array of chat messages in DOM order
  */
 export function extractChatData(): ChatMessage[] {
   const chatMessages: ChatMessage[] = [];
   
   try {
-    // Try primary selectors first
-    const userQueries = document.querySelectorAll('user-query');
-    const modelResponses = document.querySelectorAll('model-response, dual-model-response');
+    // Try to find all conversation elements in DOM order
+    const allConversationElements = document.querySelectorAll('user-query, model-response, dual-model-response');
     
-    console.log(`Found ${userQueries.length} user queries and ${modelResponses.length} model responses`);
+    console.log(`Found ${allConversationElements.length} conversation elements in total`);
     
-    // If primary selectors don't work, try conversation container approach
-    if (userQueries.length === 0 && modelResponses.length === 0) {
+    if (allConversationElements.length === 0) {
+      console.log('Primary selectors found no elements, trying fallback method...');
       return extractFromConversationContainers();
     }
     
-    // Extract user queries
-    userQueries.forEach((element) => {
+    // Extract messages in DOM order
+    allConversationElements.forEach((element, index) => {
+      const tagName = element.tagName.toLowerCase();
       const text = extractTextFromElement(element);
+      
       if (text.trim()) {
+        const messageType = tagName === 'user-query' ? 'user' : 'assistant';
+        
         chatMessages.push({
-          type: 'user',
+          type: messageType,
           content: text.trim(),
           timestamp: new Date().toISOString()
         });
+        
+        console.log(`[${index}] Extracted ${messageType}: ${text.substring(0, 50)}...`);
       }
     });
     
-    // Extract model responses
-    modelResponses.forEach((element) => {
-      const text = extractTextFromElement(element);
-      if (text.trim()) {
-        chatMessages.push({
-          type: 'assistant',
-          content: text.trim(),
-          timestamp: new Date().toISOString()
-        });
-      }
-    });
-    
-    // Sort messages by their DOM order
-    return sortMessagesByDOMOrder(chatMessages);
+    console.log(`✅ Successfully extracted ${chatMessages.length} messages in DOM order`);
+    return chatMessages;
     
   } catch (error) {
     console.error('Error extracting chat data:', error);
@@ -65,37 +58,39 @@ function extractFromConversationContainers(): ChatMessage[] {
   const chatMessages: ChatMessage[] = [];
   
   try {
-    const containers = document.querySelectorAll('.conversation-container');
-    console.log(`Trying fallback method with ${containers.length} conversation containers`);
+    // Look for all possible conversation elements in DOM order
+    const allPossibleElements = document.querySelectorAll([
+      '.conversation-container',
+      '.user-query-container', '.user-query-bubble-container',
+      '.response-container', '[class*="response"]',
+      '[data-role="user"]', '[data-role="assistant"]'
+    ].join(', '));
     
-    containers.forEach(container => {
-      // Look for user queries in container
-      const userElements = container.querySelectorAll('.user-query-container, .user-query-bubble-container');
-      userElements.forEach(element => {
-        const text = extractTextFromElement(element);
-        if (text.trim()) {
-          chatMessages.push({
-            type: 'user',
-            content: text.trim(),
-            timestamp: new Date().toISOString()
-          });
-        }
-      });
+    console.log(`Trying fallback method with ${allPossibleElements.length} potential conversation elements`);
+    
+    allPossibleElements.forEach((element, index) => {
+      const className = element.className;
+      const text = extractTextFromElement(element);
       
-      // Look for model responses in container
-      const responseElements = container.querySelectorAll('.response-container, [class*="response"]');
-      responseElements.forEach(element => {
-        const text = extractTextFromElement(element);
-        if (text.trim()) {
-          chatMessages.push({
-            type: 'assistant',
-            content: text.trim(),
-            timestamp: new Date().toISOString()
-          });
+      if (text.trim()) {
+        // Determine message type based on class names or other attributes
+        let messageType: 'user' | 'assistant' = 'assistant'; // default
+        
+        if (className.includes('user') || element.getAttribute('data-role') === 'user') {
+          messageType = 'user';
         }
-      });
+        
+        chatMessages.push({
+          type: messageType,
+          content: text.trim(),
+          timestamp: new Date().toISOString()
+        });
+        
+        console.log(`[${index}] Fallback extracted ${messageType}: ${text.substring(0, 50)}...`);
+      }
     });
     
+    console.log(`✅ Fallback method extracted ${chatMessages.length} messages`);
     return chatMessages;
     
   } catch (error) {
@@ -117,23 +112,51 @@ function extractTextFromElement(element: Element): string {
   const scriptsAndStyles = clone.querySelectorAll('script, style');
   scriptsAndStyles.forEach(el => el.remove());
   
+  // Remove specific Gemini UI elements that shouldn't be included in chat content
+  const uiElements = clone.querySelectorAll([
+    '[data-test-id*="thinking"]',           // Thinking process indicators
+    '.thinking-indicator',                   // Thinking indicators
+    '[data-test-id="thinking-indicator"]',   // Specific thinking indicators
+    'button',                               // Buttons
+    '.gemini-toolbar',                      // Toolbar elements
+    '.action-buttons',                      // Action buttons
+    '.copy-button',                         // Copy buttons
+    '.feedback-buttons'                     // Feedback buttons
+  ].join(', '));
+  
+  uiElements.forEach(el => el.remove());
+  
   // Get text content and clean it up
-  const text = clone.textContent || (clone as HTMLElement).innerText || '';
+  let text = clone.textContent || (clone as HTMLElement).innerText || '';
+  
+  // Remove specific UI text patterns that appear in Gemini
+  const uiTextPatterns = [
+    /^思考プロセスを表示/,                    // "思考プロセスを表示" at the beginning
+    /思考プロセスを表示$/,                    // "思考プロセスを表示" at the end
+    /^コピー$/,                             // "コピー" button text
+    /^Copy$/,                              // "Copy" button text
+    /^共有$/,                              // "共有" button text
+    /^Share$/,                             // "Share" button text
+    /^いいね$/,                            // "いいね" button text
+    /^よくない$/,                          // "よくない" button text
+    /^編集$/,                              // "編集" button text
+    /^Edit$/,                              // "Edit" button text
+    /^続行$/,                              // "続行" button text
+    /^Continue$/,                          // "Continue" button text
+    /^再生成$/,                            // "再生成" button text
+    /^Regenerate$/                         // "Regenerate" button text
+  ];
+  
+  // Apply UI text pattern removal
+  uiTextPatterns.forEach(pattern => {
+    text = text.replace(pattern, '');
+  });
   
   // Clean up whitespace and line breaks
   return text
-    .replace(/\s+/g, ' ')  // Replace multiple whitespace with single space
-    .replace(/\n\s*\n/g, '\n')  // Replace multiple newlines with single newline
+    .replace(/\s+/g, ' ')                 // Replace multiple whitespace with single space
+    .replace(/\n\s*\n/g, '\n')           // Replace multiple newlines with single newline
     .trim();
-}
-
-/**
- * Sort messages by their appearance order in the DOM
- */
-function sortMessagesByDOMOrder(messages: ChatMessage[]): ChatMessage[] {
-  // For now, return as-is since we're extracting in DOM order
-  // This can be enhanced later if needed
-  return messages;
 }
 
 /**
