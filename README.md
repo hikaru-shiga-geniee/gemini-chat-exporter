@@ -30,12 +30,14 @@ Geminiのチャット履歴をエクスポートするChrome拡張機能です�
 ### インストール
 
 1. リポジトリをクローン
+
 ```bash
 git clone <repository-url>
 cd gemini-chat-exporter
 ```
 
 2. 依存関係をインストール
+
 ```bash
 make install
 # または
@@ -43,6 +45,7 @@ npm install
 ```
 
 3. プロジェクトをビルド
+
 ```bash
 make build
 # または
@@ -116,30 +119,36 @@ gemini-chat-exporter/
 ## 🎯 開発ロードマップ
 
 ### フェーズ 1: プロジェクトセットアップ ✅
+
 - [x] Viteプロジェクトの初期化
 - [x] 依存関係のインストール
 - [x] manifest.jsonの作成
 - [x] 基本的なPopup UIの構築
 
 ### フェーズ 2: Popup UI の構築 🚧
-- [ ] MUIテーマの適用
-- [ ] エクスポートボタンの追加
-- [ ] UI/UXの改善
+
+- [x] MUIテーマの適用
+- [x] エクスポートボタンの追加
+- [x] UI/UXの改善
 
 ### フェーズ 3: Content Script（データ抽出）
+
 - [ ] Content Scriptの作成
 - [ ] Gemini DOM要素の解析
 - [ ] チャットデータの抽出機能
 
 ### フェーズ 4: 通信機能
+
 - [ ] Popup ↔ Content Script間の通信
 - [ ] データの送受信機能
 
 ### フェーズ 5: ファイル保存
+
 - [ ] テキスト形式でのエクスポート
 - [ ] ファイルダウンロード機能
 
 ### フェーズ 6: 最終調整
+
 - [ ] エラーハンドリング
 - [ ] パフォーマンス最適化
 - [ ] テスト・デバッグ
