@@ -13,7 +13,15 @@
   ],
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Gemini Chat Exporter"
+    "default_title": "Gemini Chat Exporter",
+    "default_icon": {
+      "16": "icons/icon16.svg",
+      "48": "icons/icon16.svg",
+      "128": "icons/icon16.svg"
+    }
+  },
+  "background": {
+    "service_worker": "background/index.js"
   },
   "content_scripts": [
     {

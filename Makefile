@@ -1,4 +1,4 @@
-.PHONY: help build format format-check lint lint-fix clean dev install
+.PHONY: help build format format-check lint lint-fix clean dev install test
 
 # デフォルトターゲット
 help:
@@ -11,6 +11,7 @@ help:
 	@echo "  make dev          - 開発サーバーを起動"
 	@echo "  make clean        - ビルドファイルをクリーンアップ"
 	@echo "  make install      - 依存関係をインストール"
+	@echo "  make test         - 拡張機能の最終テストを実行"
 
 # ビルド
 build:
@@ -43,6 +44,11 @@ clean:
 # 依存関係インストール
 install:
 	npm install
+
+# 最終テスト
+test:
+	@echo "Chrome拡張機能の最終テストを実行中..."
+	node final-test.cjs
 
 # ビルド前チェック（フォーマット・リント）
 check: format-check lint

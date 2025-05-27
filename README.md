@@ -4,13 +4,15 @@ Geminiのチャット履歴をエクスポートするChrome拡張機能です�
 
 ## 📋 概要
 
-この拡張機能を使用すると、Gemini（gemini.google.com）でのチャット会話を様々な形式でエクスポートできます。
+この拡張機能を使用すると、Gemini（gemini.google.com）でのチャット会話をMarkdown形式でエクスポートできます。
 
 ### 🎯 主な機能
 
-- Geminiのチャット履歴を抽出
-- プレーンテキスト形式（.txt）でのエクスポート
-- 将来的にMarkdown、JSON形式にも対応予定
+- ✅ Geminiのチャット履歴を自動抽出
+- ✅ Markdown形式（.txt）でのエクスポート
+- ✅ ユーザーとAIの会話を適切に区別して保存
+- ✅ 直感的なPopup UIでワンクリックエクスポート
+- ✅ Chrome Extension Manifest V3対応
 
 ### 🛠️ 技術スタック
 
@@ -18,8 +20,9 @@ Geminiのチャット履歴をエクスポートするChrome拡張機能です�
 - **ビルドツール**: Vite
 - **UIライブラリ**: Material-UI (MUI)
 - **拡張機能**: Chrome Extension Manifest V3
+- **Content Script**: DOM解析によるチャットデータ抽出
 
-## 🚀 セットアップ
+## 🚀 インストール方法
 
 ### 前提条件
 
@@ -27,30 +30,33 @@ Geminiのチャット履歴をエクスポートするChrome拡張機能です�
 - npm または yarn
 - Google Chrome
 
-### インストール
-
-1. リポジトリをクローン
+### 1. リポジトリのクローンとビルド
 
 ```bash
 git clone <repository-url>
 cd gemini-chat-exporter
-```
 
-2. 依存関係をインストール
-
-```bash
-make install
-# または
+# 依存関係をインストール
 npm install
-```
 
-3. プロジェクトをビルド
-
-```bash
-make build
-# または
+# プロジェクトをビルド
 npm run build
 ```
+
+### 2. Chrome拡張機能として読み込み
+
+1. Chromeで `chrome://extensions/` を開く
+2. 右上の「デベロッパーモード」をオンにする
+3. 「パッケージ化されていない拡張機能を読み込む」をクリック
+4. プロジェクトの `dist` フォルダを選択
+
+## 📖 使用方法
+
+1. **Gemini（gemini.google.com）にアクセス**
+2. **チャット会話を開始または既存の会話を表示**
+3. **ツールバーの拡張機能アイコンをクリック**
+4. **「Export Chat」ボタンをクリック**
+5. **チャット履歴がMarkdown形式の.txtファイルでダウンロード**
 
 ## 🔧 開発
 
@@ -86,72 +92,67 @@ make fix
 
 # ビルドファイルをクリーンアップ
 make clean
+
+# 最終テストを実行
+make test
 ```
-
-### Chrome拡張機能として読み込む
-
-1. Chromeで `chrome://extensions/` を開く
-2. 右上の「デベロッパーモード」をオンにする
-3. 「パッケージ化されていない拡張機能を読み込む」をクリック
-4. プロジェクトの `dist` フォルダを選択
 
 ## 📁 プロジェクト構成
 
 ```
 gemini-chat-exporter/
 ├── public/                 # 静的ファイル
-│   └── manifest.json       # Chrome拡張機能の設定
+│   ├── manifest.json       # Chrome拡張機能の設定
+│   └── icons/              # 拡張機能アイコン
 ├── src/                    # ソースコード
 │   ├── popup/              # Popup UI
 │   │   ├── main.tsx        # Reactエントリーポイント
-│   │   └── App.tsx         # メインコンポーネント
-│   ├── content/            # Content Script（予定）
-│   ├── background/         # Background Script（予定）
-│   ├── types/              # 型定義（予定）
-│   └── utils/              # ユーティリティ（予定）
+│   │   ├── App.tsx         # メインコンポーネント
+│   │   ├── theme.ts        # MUIテーマ設定
+│   │   └── components/     # UIコンポーネント
+│   ├── content/            # Content Script
+│   │   ├── index.ts        # メインエントリーポイント
+│   │   └── chatExtractor.ts # チャット抽出ロジック
+│   ├── background/         # Background Script
+│   │   └── index.ts        # サービスワーカー
+│   ├── types/              # 型定義
+│   └── utils/              # ユーティリティ関数
 ├── dist/                   # ビルド出力
+├── final-test.cjs          # 最終テストスクリプト
 ├── Makefile                # 開発用コマンド
-├── vite.config.ts          # Vite設定
-├── .prettierrc             # Prettier設定
-└── README.md               # このファイル
+└── vite.config.ts          # Vite設定
 ```
 
-## 🎯 開発ロードマップ
+## 🎯 機能詳細
 
-### フェーズ 1: プロジェクトセットアップ ✅
+### Content Script
+- Geminiページの DOM 構造を解析
+- ユーザーの入力とAIの応答を自動抽出
+- リアルタイムでのチャット監視機能
 
-- [x] Viteプロジェクトの初期化
-- [x] 依存関係のインストール
-- [x] manifest.jsonの作成
-- [x] 基本的なPopup UIの構築
+### Popup UI
+- Material-UI による美しいユーザーインターフェース
+- エクスポート進行状況の表示
+- エラーハンドリングとユーザーフィードバック
 
-### フェーズ 2: Popup UI の構築 🚧
+### Background Script
+- 拡張機能の永続的な動作を管理
+- 将来の機能拡張に対応
 
-- [x] MUIテーマの適用
-- [x] エクスポートボタンの追加
-- [x] UI/UXの改善
+## 🧪 テスト
 
-### フェーズ 3: Content Script（データ抽出）
+拡張機能が正しくビルドされているかテストするには：
 
-- [ ] Content Scriptの作成
-- [ ] Gemini DOM要素の解析
-- [ ] チャットデータの抽出機能
+```bash
+make test
+# または
+node final-test.cjs
+```
 
-### フェーズ 4: 通信機能
-
-- [ ] Popup ↔ Content Script間の通信
-- [ ] データの送受信機能
-
-### フェーズ 5: ファイル保存
-
-- [ ] テキスト形式でのエクスポート
-- [ ] ファイルダウンロード機能
-
-### フェーズ 6: 最終調整
-
-- [ ] エラーハンドリング
-- [ ] パフォーマンス最適化
-- [ ] テスト・デバッグ
+このスクリプトは以下を確認します：
+- 必要なファイルがすべて生成されているか
+- manifest.jsonの設定が正しいか
+- Chrome拡張機能として読み込み可能な状態か
 
 ## 🤝 コントリビューション
 
@@ -170,3 +171,28 @@ gemini-chat-exporter/
 - この拡張機能は非公式のツールです
 - Geminiの利用規約に従ってご使用ください
 - 個人的な用途での使用を推奨します
+- Geminiのページ構造変更により動作しなくなる可能性があります
+
+## 🐛 トラブルシューティング
+
+### 拡張機能が動作しない場合
+
+1. **Geminiページでの動作確認**
+   - gemini.google.com にアクセスしているか確認
+   - ページが完全に読み込まれているか確認
+
+2. **Content Scriptの確認**
+   - デベロッパーツール（F12）でコンソールエラーをチェック
+   - Content Scriptが正しく読み込まれているか確認
+
+3. **拡張機能の再読み込み**
+   - chrome://extensions/ で拡張機能を無効化→有効化
+   - または「更新」ボタンをクリック
+
+### 支援が必要な場合
+
+Issue を作成して以下の情報を含めてください：
+- Chrome のバージョン
+- エラーメッセージ（あれば）
+- 実行した手順
+- 期待していた動作と実際の動作
