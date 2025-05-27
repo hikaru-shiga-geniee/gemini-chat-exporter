@@ -68,7 +68,7 @@ function App() {
             console.log(`💾 Downloading file: ${fileName}`)
             downloadTextFile(formattedText, fileName)
             
-            alert(`✅ Successfully exported ${response.messageCount} messages to ${fileName}`)
+            console.log(`✅ Successfully exported ${response.messageCount} messages to ${fileName}`)
           } catch (exportError) {
             console.error('❌ Error during export process:', exportError)
             alert(`Error during export: ${exportError instanceof Error ? exportError.message : 'Unknown error'}`)
