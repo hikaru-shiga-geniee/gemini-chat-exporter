@@ -100,7 +100,7 @@ function extractFromConversationContainers(): ChatMessage[] {
 }
 
 /**
- * Extract clean text content from an element
+ * Extract clean text content from an element while preserving Markdown formatting
  */
 function extractTextFromElement(element: Element): string {
   if (!element) return '';
@@ -126,8 +126,8 @@ function extractTextFromElement(element: Element): string {
   
   uiElements.forEach(el => el.remove());
   
-  // Get text content and clean it up
-  let text = clone.textContent || (clone as HTMLElement).innerText || '';
+  // Convert HTML structure to Markdown
+  let text = convertHtmlToMarkdown(clone);
   
   // Remove specific UI text patterns that appear in Gemini
   const uiTextPatterns = [
@@ -152,11 +152,186 @@ function extractTextFromElement(element: Element): string {
     text = text.replace(pattern, '');
   });
   
-  // Clean up whitespace and line breaks
+  // Clean up excessive whitespace while preserving intentional formatting
   return text
-    .replace(/\s+/g, ' ')                 // Replace multiple whitespace with single space
-    .replace(/\n\s*\n/g, '\n')           // Replace multiple newlines with single newline
+    .replace(/[ \t]+/g, ' ')              // Replace multiple spaces/tabs with single space
+    .replace(/\n[ \t]+\n/g, '\n\n')       // Clean up whitespace-only lines
+    .replace(/\n{3,}/g, '\n\n')           // Replace multiple newlines with double newline
     .trim();
+}
+
+/**
+ * Convert HTML structure to Markdown format
+ */
+function convertHtmlToMarkdown(element: Element): string {
+  let result = '';
+  
+  // Walk through all child nodes
+  for (let node of Array.from(element.childNodes)) {
+    if (node.nodeType === Node.TEXT_NODE) {
+      // Text node - add as is
+      result += node.textContent || '';
+    } else if (node.nodeType === Node.ELEMENT_NODE) {
+      const el = node as Element;
+      const tagName = el.tagName.toLowerCase();
+      
+      switch (tagName) {
+        case 'pre':
+          // Handle code blocks
+          const codeElement = el.querySelector('code');
+          if (codeElement) {
+            const language = getCodeLanguage(codeElement);
+            const codeContent = (codeElement.textContent || '').trim();
+            if (codeContent) {
+              result += `\n\`\`\`${language}\n${codeContent}\n\`\`\`\n\n`;
+            }
+          } else {
+            const preContent = (el.textContent || '').trim();
+            if (preContent) {
+              result += `\n\`\`\`\n${preContent}\n\`\`\`\n\n`;
+            }
+          }
+          break;
+          
+        case 'code':
+          // Handle inline code (only if not inside <pre>)
+          if (el.parentElement?.tagName.toLowerCase() !== 'pre') {
+            result += `\`${el.textContent || ''}\``;
+          }
+          break;
+          
+        case 'br':
+          // Line break
+          result += '\n';
+          break;
+          
+        case 'p':
+          // Paragraph
+          result += convertHtmlToMarkdown(el) + '\n\n';
+          break;
+          
+        case 'div':
+          // Division - treat as paragraph if it contains significant content
+          const divContent = convertHtmlToMarkdown(el);
+          if (divContent.trim()) {
+            result += divContent + '\n';
+          }
+          break;
+          
+        case 'span':
+          // Span - inline element, no additional formatting
+          result += convertHtmlToMarkdown(el);
+          break;
+          
+        case 'strong':
+        case 'b':
+          // Bold text
+          result += `**${convertHtmlToMarkdown(el)}**`;
+          break;
+          
+        case 'em':
+        case 'i':
+          // Italic text
+          result += `*${convertHtmlToMarkdown(el)}*`;
+          break;
+          
+        case 'h1':
+          result += `# ${convertHtmlToMarkdown(el)}\n\n`;
+          break;
+        case 'h2':
+          result += `## ${convertHtmlToMarkdown(el)}\n\n`;
+          break;
+        case 'h3':
+          result += `### ${convertHtmlToMarkdown(el)}\n\n`;
+          break;
+        case 'h4':
+          result += `#### ${convertHtmlToMarkdown(el)}\n\n`;
+          break;
+        case 'h5':
+          result += `##### ${convertHtmlToMarkdown(el)}\n\n`;
+          break;
+        case 'h6':
+          result += `###### ${convertHtmlToMarkdown(el)}\n\n`;
+          break;
+          
+        case 'ul':
+          // Unordered list
+          result += convertListToMarkdown(el, false) + '\n';
+          break;
+          
+        case 'ol':
+          // Ordered list
+          result += convertListToMarkdown(el, true) + '\n';
+          break;
+          
+        case 'li':
+          // List item - handled by convertListToMarkdown
+          break;
+          
+        case 'blockquote':
+          // Quote block
+          const quoteContent = convertHtmlToMarkdown(el);
+          result += quoteContent.split('\n').map(line => `> ${line}`).join('\n') + '\n\n';
+          break;
+          
+        default:
+          // For other elements, recursively process content
+          result += convertHtmlToMarkdown(el);
+          break;
+      }
+    }
+  }
+  
+  return result;
+}
+
+/**
+ * Extract programming language from code element classes
+ */
+function getCodeLanguage(codeElement: Element): string {
+  const classList = Array.from(codeElement.classList);
+  
+  for (const className of classList) {
+    // Common patterns: language-xxx, lang-xxx, hljs-xxx
+    if (className.startsWith('language-')) {
+      return className.replace('language-', '');
+    }
+    if (className.startsWith('lang-')) {
+      return className.replace('lang-', '');
+    }
+    if (className.startsWith('hljs-')) {
+      return className.replace('hljs-', '');
+    }
+  }
+  
+  return ''; // No language detected
+}
+
+/**
+ * Convert HTML list to Markdown format
+ */
+function convertListToMarkdown(listElement: Element, isOrdered: boolean): string {
+  const items = Array.from(listElement.querySelectorAll('li'));
+  let result = '';
+  
+  items.forEach((item, index) => {
+    const content = convertHtmlToMarkdown(item).trim();
+    if (content) {
+      const prefix = isOrdered ? `${index + 1}. ` : '- ';
+      // Handle multi-line list items
+      const lines = content.split('\n');
+      result += prefix + lines[0] + '\n';
+      
+      // Indent continuation lines
+      for (let i = 1; i < lines.length; i++) {
+        if (lines[i].trim()) {
+          result += '  ' + lines[i] + '\n';
+        }
+      }
+    }
+  });
+  
+  return result;
 }
 
 /**
