@@ -5,7 +5,8 @@
   "description": "Export your Gemini chat conversations.",
   "permissions": [
     "activeTab",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
     "https://gemini.google.com/*"

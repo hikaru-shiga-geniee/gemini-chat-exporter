@@ -23,6 +23,50 @@ if (window.location.hostname === 'gemini.google.com') {
   console.log('❌ Not on Gemini page, hostname:', window.location.hostname);
 }
 
+// Add message listener for communication with popup
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  console.log('📨 Content script received message:', message);
+  
+  // Handle getChatData message from popup
+  if (message.type === 'getChatData') {
+    console.log('🔍 Extracting chat data...');
+    
+    try {
+      const chatData = extractChatData();
+      console.log('✅ Successfully extracted chat data:', chatData);
+      
+      // Send response back to popup
+      sendResponse({
+        success: true,
+        data: chatData,
+        messageCount: chatData.length
+      });
+    } catch (error) {
+      console.error('❌ Error extracting chat data:', error);
+      
+      // Send error response back to popup
+      sendResponse({
+        success: false,
+        error: error instanceof Error ? error.message : 'Unknown error occurred',
+        data: []
+      });
+    }
+    
+    // Return true to indicate we will send a response asynchronously
+    return true;
+  }
+  
+  // Handle other message types if needed
+  console.log('⚠️ Unknown message type:', message.type);
+  sendResponse({
+    success: false,
+    error: 'Unknown message type',
+    data: []
+  });
+  
+  return true;
+});
+
 function initializeExtractor() {
   console.log('🚀 Gemini Chat Exporter: Initializing chat extractor');
   
